@@ -20,11 +20,9 @@ for i in range(0, len(data), 5):
     data_processed.append([float(data[i]), float(data[i+1]), float(data[i+2]), \
                            float(data[i+3]), int(data[i+4])])
 
-# print length of data
-print("Length of data: ", len(data_processed))
 
 print('Using features 1 and 2')
-# Step 1: Estimate Parameters (Mean vectors and Covariance matrices)
+# Step 1: Estimate Mean vectors and Covariance matrices
 def estimate_parameters(data):
     num_features = 2  # Considering only features 1 and 2
     num_classes = max(data, key=lambda x: x[-1])[-1]  # Assuming class labels are 1-indexed
@@ -78,6 +76,8 @@ def multivariate_normal_pdf(x, mean, covariance_matrix):
     return coefficient * np.exp(exponent)
 
 def minimum_risk_classifier(test_sample, mean_vectors, covariance_matrices, prior_probabilities):
+    # Calculate the risk for each class and choose the class 
+    # with the minimum risk as the predicted class label.
     num_classes = len(mean_vectors)
     risks = [0] * num_classes
 
@@ -152,8 +152,7 @@ def cross_validation(data):
     print(f"Overall Accuracy: {overall_accuracy:.2f}")
     print(f"Overall Misclassifications: {total_misclassifications}/{total_samples}")
 
-    avg_accuracy = 1 - (total_misclassifications / total_samples)
-    return avg_accuracy, predicted_labels
+    return overall_accuracy, predicted_labels
 
 # Step 4: Display Results (Mean vectors, Covariance matrices, Confusion matrix, Error estimates, Classification information)
 def display_results(mean_vectors, covariance_matrices, confusion_matrix):
@@ -177,7 +176,7 @@ def display_results(mean_vectors, covariance_matrices, confusion_matrix):
     print(f"\nError Rate: {error_rate:.2f}")
     print('\n----------------------------------------')
 
-# Step 5: Main code
+# Main code
 data = data_processed
 
 # Assuming equal prior probabilities for each class (not hard-coded)
@@ -186,7 +185,6 @@ prior_probabilities = {i: 1 / num_classes for i in range(1, num_classes + 1)}
 
 # Perform cross-validation and display the results
 avg_accuracy, predicted_labels = cross_validation(data)
-print(f"\nAverage Accuracy: {avg_accuracy:.2f}")
 
 # Estimate mean vectors and covariance matrices using the entire data
 mean_vectors, covariance_matrices = estimate_parameters(data)
