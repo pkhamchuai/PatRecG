@@ -57,40 +57,45 @@ def estimate_parameters(data):
     return mean_vectors, covariance_matrices
 
 # Step 2: Minimum Risk Bayes Decision Theoretic Classifier
+def multivariate_normal_pdf(x, mean, covariance_matrix):
+    # Calculate the multivariate normal probability density function (PDF) for a given test sample 'x'
+    # with the given mean and covariance matrix.
+    k = len(x)
+    coefficient = 1.0 / ((2 * np.pi) ** (k / 2) * np.linalg.det(covariance_matrix))
+
+    # Calculate (x - mean)
+    x_minus_mean = x - mean
+
+    # Calculate the inverse of the covariance matrix
+    inv_covariance = np.linalg.inv(covariance_matrix)
+
+    # Calculate the Mahalanobis distance squared
+    mahalanobis_dist_sq = np.dot(x_minus_mean, np.dot(inv_covariance, x_minus_mean))
+
+    # Calculate the exponent
+    exponent = -0.5 * mahalanobis_dist_sq
+
+    return coefficient * np.exp(exponent)
+
 def minimum_risk_classifier(test_sample, mean_vectors, covariance_matrices, prior_probabilities):
     num_classes = len(mean_vectors)
-    log_likelihoods = np.zeros(num_classes)
+    risks = [0] * num_classes
 
     for class_label in range(1, num_classes + 1):
         mean_vector = np.array(mean_vectors[class_label])
         covariance_matrix = np.array(covariance_matrices[class_label])
 
-        # Convert the test_sample to a NumPy array and select only features 1 and 2
-        test_sample_arr = np.array(test_sample)[:2]
+        # Extract only the first two features from the test sample
+        test_sample_2d = test_sample[:2]
 
-        # Calculate (x - mean) for the selected features
-        x_minus_mean = test_sample_arr - mean_vector[:2]
+        # Calculate the multivariate normal PDF for the current class
+        pdf = multivariate_normal_pdf(test_sample_2d, mean_vector[:2], covariance_matrix[:2, :2])
 
-        # Calculate the determinant of the covariance matrix for the selected features
-        det_covariance = np.linalg.det(covariance_matrix[:2, :2])
+        # Calculate the risk for the current class, which is the negative log-PDF plus the log-prior probability.
+        risks[class_label - 1] = -np.log(pdf) + np.log(prior_probabilities[class_label])
 
-        # Calculate the inverse of the covariance matrix for the selected features
-        inv_covariance = np.linalg.inv(covariance_matrix[:2, :2])
-
-        # Calculate the Mahalanobis distance squared for the selected features
-        mahalanobis_dist_sq = np.dot(x_minus_mean, np.dot(inv_covariance, x_minus_mean))
-
-        # Calculate the log-likelihood for the selected features
-        log_likelihood = -0.5 * (mahalanobis_dist_sq + np.log(det_covariance))
-
-        # Calculate the log-likelihood with the prior probability
-        log_likelihood += np.log(prior_probabilities[class_label])
-
-        log_likelihoods[class_label - 1] = log_likelihood
-
-    # Choose the class with the highest log-likelihood as the predicted label
-    predicted_label = np.argmax(log_likelihoods) + 1
-
+    # Choose the class with the minimum risk as the predicted class label.
+    predicted_label = np.argmin(risks) + 1
     return predicted_label
 
 # Step 3: 10% Cross Validation
@@ -173,7 +178,6 @@ def display_results(mean_vectors, covariance_matrices, confusion_matrix):
     print('\n----------------------------------------')
 
 # Step 5: Main code
-# Example data
 data = data_processed
 
 # Assuming equal prior probabilities for each class (not hard-coded)
