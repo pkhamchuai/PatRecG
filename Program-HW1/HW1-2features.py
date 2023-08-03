@@ -11,8 +11,6 @@ try:
 except FileNotFoundError:
     print("File not found!")
 
-column = ['f1', 'f2', 'f3', 'f4', 'class label']
-
 # drop the first 6 elements from list 'data'
 data = data[6:]
 
@@ -61,33 +59,37 @@ def estimate_parameters(data):
 # Step 2: Minimum Risk Bayes Decision Theoretic Classifier
 def minimum_risk_classifier(test_sample, mean_vectors, covariance_matrices, prior_probabilities):
     num_classes = len(mean_vectors)
-    posterior_probabilities = [0] * num_classes
+    log_likelihoods = np.zeros(num_classes)
 
     for class_label in range(1, num_classes + 1):
         mean_vector = np.array(mean_vectors[class_label])
         covariance_matrix = np.array(covariance_matrices[class_label])
 
-        # Convert the test_sample to a NumPy array and consider only features 1 and 2
-        test_sample_arr = np.array(test_sample[:2])
+        # Convert the test_sample to a NumPy array and select only features 1 and 2
+        test_sample_arr = np.array(test_sample)[:2]
 
-        # Calculate (x - mean)
-        x_minus_mean = test_sample_arr - mean_vector
+        # Calculate (x - mean) for the selected features
+        x_minus_mean = test_sample_arr - mean_vector[:2]
 
-        # Calculate the determinant of the covariance matrix
-        det_covariance = np.linalg.det(covariance_matrix)
+        # Calculate the determinant of the covariance matrix for the selected features
+        det_covariance = np.linalg.det(covariance_matrix[:2, :2])
 
-        # Calculate the inverse of the covariance matrix
-        inv_covariance = np.linalg.inv(covariance_matrix)
+        # Calculate the inverse of the covariance matrix for the selected features
+        inv_covariance = np.linalg.inv(covariance_matrix[:2, :2])
 
-        # Calculate the Mahalanobis distance squared
+        # Calculate the Mahalanobis distance squared for the selected features
         mahalanobis_dist_sq = np.dot(x_minus_mean, np.dot(inv_covariance, x_minus_mean))
 
-        # Calculate the log-likelihood and posterior probability without using math.log
+        # Calculate the log-likelihood for the selected features
         log_likelihood = -0.5 * (mahalanobis_dist_sq + np.log(det_covariance))
-        posterior_probabilities[class_label - 1] = np.log(prior_probabilities[class_label]) + log_likelihood
 
-    # Choose the class with the highest posterior probability as the predicted label
-    predicted_label = np.argmax(posterior_probabilities) + 1
+        # Calculate the log-likelihood with the prior probability
+        log_likelihood += np.log(prior_probabilities[class_label])
+
+        log_likelihoods[class_label - 1] = log_likelihood
+
+    # Choose the class with the highest log-likelihood as the predicted label
+    predicted_label = np.argmax(log_likelihoods) + 1
 
     return predicted_label
 

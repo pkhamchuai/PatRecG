@@ -11,8 +11,6 @@ try:
 except FileNotFoundError:
     print("File not found!")
 
-column = ['f1', 'f2', 'f3', 'f4', 'class label']
-
 # drop the first 6 elements from list 'data'
 data = data[6:]
 
@@ -75,7 +73,7 @@ def multivariate_normal_pdf(x, mean, covariance):
 
 def minimum_risk_classifier(test_sample, mean_vectors, covariance_matrices, prior_probabilities):
     num_classes = len(mean_vectors)
-    posterior_probabilities = [0] * num_classes
+    log_likelihoods = np.zeros(num_classes)
 
     for class_label in range(1, num_classes + 1):
         mean_vector = np.array(mean_vectors[class_label])
@@ -96,12 +94,16 @@ def minimum_risk_classifier(test_sample, mean_vectors, covariance_matrices, prio
         # Calculate the Mahalanobis distance squared
         mahalanobis_dist_sq = np.dot(x_minus_mean, np.dot(inv_covariance, x_minus_mean))
 
-        # Calculate the log-likelihood and posterior probability without using math.log
-        log_likelihood = -0.5 * (mahalanobis_dist_sq + np.sum(np.log(np.linalg.eigvals(covariance_matrix))))
-        posterior_probabilities[class_label - 1] = np.log(prior_probabilities[class_label]) + log_likelihood
+        # Calculate the log-likelihood
+        log_likelihood = -0.5 * (mahalanobis_dist_sq + np.log(det_covariance))
 
-    # Choose the class with the highest posterior probability as the predicted label
-    predicted_label = np.argmax(posterior_probabilities) + 1
+        # Calculate the log-likelihood with the prior probability
+        log_likelihood += np.log(prior_probabilities[class_label])
+
+        log_likelihoods[class_label - 1] = log_likelihood
+
+    # Choose the class with the highest log-likelihood as the predicted label
+    predicted_label = np.argmax(log_likelihoods) + 1
 
     return predicted_label
 
