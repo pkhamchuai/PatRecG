@@ -1,3 +1,4 @@
 {
-    "workbench.experimental.cloudChanges.autoStore": "onShutdown"
+    "workbench.experimental.cloudChanges.autoStore": "onShutdown",
+    "python.analysis.typeCheckingMode": "off"
 }
