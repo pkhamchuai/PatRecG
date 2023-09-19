@@ -273,7 +273,7 @@ class sgHCM:
         return Et
     
 # perform 10-fold cross validation on sgHCM classifier
-def cross_validation(train_data, test_data, k_num = 2, fold=10):
+def cross_validation(train_data, training_labels, test_data, k_num = 2, fold=10):
     # shuffle the number of samples in the training data 
     # and rearrange the labels accordingly
 
@@ -286,7 +286,8 @@ def cross_validation(train_data, test_data, k_num = 2, fold=10):
 
     # split the training data and labels
     training_labels = train_data[:, -1]
-    train_data = train_data[:, :-1]    
+    train_data = train_data[:, :-1].reshape(train_data.shape[0])
+    print(f'{train_data.shape}, {training_labels.shape}')
 
     fold_size = len(train_data) // fold
 
@@ -316,4 +317,4 @@ def cross_validation(train_data, test_data, k_num = 2, fold=10):
         print('\n+++++++++++++++++++++++++++++++++++++++++++++++++++++')
     print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
 
-cross_validation(training_data, test_data)
+cross_validation(training_data, training_labels, test_data, k_num = 2, fold=10)
