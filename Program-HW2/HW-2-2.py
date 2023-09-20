@@ -165,6 +165,29 @@ print(f'data: {training_data[0]}')
 print(f'label: {training_labels[0]}')
 print(f'label from class: {lookup(training_data[0])}')
 
+def levenshtein_distance(s1, s2):
+        # Create a matrix to store the distances between substrings of s1 and s2
+        distance_matrix = [[0] * (len(s2) + 1) for _ in range(len(s1) + 1)]
+
+        # Initialize the first row and column of the matrix
+        for i in range(len(s1) + 1):
+            distance_matrix[i][0] = i
+        for j in range(len(s2) + 1):
+            distance_matrix[0][j] = j
+
+        # Fill in the matrix using dynamic programming
+        for i in range(1, len(s1) + 1):
+            for j in range(1, len(s2) + 1):
+                cost = 0 if s1[i - 1] == s2[j - 1] else 1
+                distance_matrix[i][j] = min(
+                    distance_matrix[i - 1][j] + 1,  # Deletion
+                    distance_matrix[i][j - 1] + 1,  # Insertion
+                    distance_matrix[i - 1][j - 1] + cost  # Substitution
+                )
+
+        # The final value in the bottom-right corner of the matrix is the Levenshtein distance
+        return distance_matrix[len(s1)][len(s2)]
+
 class sgHCM:
     # first, initial the class with k value
     # then, call the class with test sample and train data
@@ -373,7 +396,7 @@ class sgHCM:
         # return the tolerance
         return Et
     
-    # perform 10-fold cross validation on sgHCM classifier
+# perform 10-fold cross validation on sgHCM classifier
 def cross_validation(train_data, train_labels, test_data, k_num = 2, fold=10):
     # shuffle the number of samples in the training data 
     # and rearrange the labels accordingly
@@ -395,6 +418,7 @@ def cross_validation(train_data, train_labels, test_data, k_num = 2, fold=10):
 
     accuracy_list = []
     num_of_unique_labels = []
+    distances_list = []
 
     for i in range(fold):
         ############################ sgHCM classifier ##########################
@@ -412,27 +436,30 @@ def cross_validation(train_data, train_labels, test_data, k_num = 2, fold=10):
         classifier.fit(data_train_fold)
 
         # print('\nPredicting the test dataset...')
-        print(f'Predictions: (test sample, test label, predicted centroid, predicted centroid label)')
+        print(f'Predictions: (test sample, test label, distance, predicted centroid label, predicted centroid)')
         predictions = []
         accuracy = 0
+        distances_fold = []
         
         for j, test_sample in enumerate(data_test_fold):
             predicted_centroid, predicted_label = classifier(test_sample)
             predictions.append([test_sample, predicted_label, predicted_centroid])
+            distances_fold.append(levenshtein_distance(test_sample, predicted_centroid))
             if j < 5:
-                print(f'{test_sample}, {lookup(test_sample)}, {predicted_label}, {predicted_centroid}')      
+                print(f'{test_sample}, {lookup(test_sample)}, {levenshtein_distance(test_sample, predicted_centroid)}, {predicted_label}, {predicted_centroid}')      
             if predicted_label == lookup(test_sample):
                 accuracy += 1
 
         accuracy = accuracy / len(data_test_fold)
         print(f'Accuracy: {accuracy}')
         accuracy_list.append(accuracy)
+        distances_list.append(np.mean(distances_fold))
      
         print('\n+++++++++++++++++++++++++++++++++++++++++++++++++++++')
 
     print(f'\nAverage accuracy: {np.mean(accuracy_list)}')
     print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    return np.mean(accuracy_list), np.mean(num_of_unique_labels)
+    return np.mean(accuracy_list), np.mean(num_of_unique_labels), np.mean(distances_list)
 
 results = []
 k_list = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
@@ -440,12 +467,33 @@ k_list = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
 
 for k in k_list:
     print(f'\n\nk = {k}')
-    accuracy, num_of_unique_labels = cross_validation(training_data, training_labels, test_data, k_num = k)
-    results.append([k, accuracy, num_of_unique_labels])
+    accuracy, num_of_unique_labels, distances = cross_validation(training_data, 
+                                training_labels, test_data, k_num = k)
+    results.append([k, accuracy, num_of_unique_labels, distances])
     # cross_validation(training_data, training_labels, test_data, k_num = k)
 print('\n\nDone')
 
-print(f'\n\nResults: (k, accuracy, number of unique labels)')
+print('\nResults:')
+print(f'(k, accuracy, number of unique labels, average distance)')
 for result in results:
     print(result)
 
+# plot k vs distance
+k = [x[0] for x in results]
+distance = [x[3] for x in results]
+plt.plot(k, distance)
+plt.xlabel('k')
+plt.ylabel('Average distance')
+plt.title('k vs Average distance')
+plt.savefig('k vs Average distance.png')
+plt.show()
+
+# plot k vs accuracy
+k = [x[0] for x in results]
+accuracy = [x[1] for x in results]
+plt.plot(k, accuracy)
+plt.xlabel('k')
+plt.ylabel('Accuracy')
+plt.title('k vs Accuracy')
+plt.savefig('k vs Accuracy.png')
+plt.show()
