@@ -47,10 +47,10 @@ def read_label(filename):
     return labels
 
 # read all the training data
-training_data = [read_data(x) for x in train_files]
+train_data = [read_data(x) for x in train_files]
 training_labels = [read_label(x) for x in train_files]
 # flatten the list of lists
-training_data = [item for sublist in training_data for item in sublist]
+training_data = [item for sublist in train_data for item in sublist]
 training_labels = [item for sublist in training_labels for item in sublist]
 print(f'# of training data: {len(training_data)}')
 print(f'# of training labels: {len(training_labels)}')
@@ -63,6 +63,107 @@ test_labels = [read_label(x) for x in test_files]
 test_labels = [item for sublist in test_labels for item in sublist]
 print(f'# of testing data: {len(test_data)}')
 print(f'# of testing labels: {len(test_labels)}')
+
+# number of unique training data
+unique_training_data = list(set(training_data))
+print(f'# of unique training data: {len(unique_training_data)}')
+
+# number of unique training labels
+unique_training_labels = list(set(training_labels))
+print(f'# of unique training labels: {len(unique_training_labels)}')
+
+# number of unique testing data
+unique_test_data = list(set(test_data))
+print(f'# of unique testing data: {len(unique_test_data)}')
+
+# number of unique testing labels
+unique_test_labels = list(set(test_labels))
+print(f'# of unique testing labels: {len(unique_test_labels)}')
+
+# show the training data that appears more than once in the training data
+# and the number of times it appears
+# this is to check if there are any duplicates in the training data
+# if there are duplicates, we need to remove them
+# if there are no duplicates, we can move on to the next step
+unique_training_data, counts = np.unique(training_data, return_counts=True)
+print(f'# of unique training data that appears more than once: {len(unique_training_data[counts > 1])}')
+# print(f'unique training data that appears more than once: {unique_training_data[counts > 1]}')
+print(f'number of times each unique training data appears: {counts[counts > 1]}')
+
+# show the testing data that appears more than once in the testing data
+# and the number of times it appears
+# this is to check if there are any duplicates in the testing data
+# if there are duplicates, we need to remove them
+# if there are no duplicates, we can move on to the next step
+unique_test_data, counts = np.unique(test_data, return_counts=True)
+print(f'# of unique testing data that appears more than once: {len(unique_test_data[counts > 1])}')
+# print(f'unique testing data that appears more than once: {unique_test_data[counts > 1]}')
+print(f'number of times each unique testing data appears: {counts[counts > 1]}')
+
+'''# remove duplicates from training data
+# remove duplicates from training labels
+# remove duplicates from testing data
+# remove duplicates from testing labels
+training_data = list(set(training_data))
+training_labels = list(set(training_labels))
+
+test_data = list(set(test_data))
+test_labels = list(set(test_labels))
+
+# show the first training data and its label
+print(f'first training data: {training_data[0]}')
+print(f'first training label: {training_labels[0]}')'''
+
+# show the training data that is duplicated in testing data
+print(f'# of training data that is duplicated in testing data: {len(set(training_data).intersection(test_data))}')
+
+'''# remove the training data that is duplicated in testing data
+# remove the training labels that is duplicated in testing labels
+training_data = list(set(training_data) - set(test_data))
+training_labels = list(set(training_labels) - set(test_labels))
+'''
+print('\nI amm going to ignore the duplicates for now as it takes a lot of time to remove them while keeping the labels in order.')
+
+# class that returns the label of the given data
+class label_lookup:
+    def __init__(self, data, labels):
+        # create a dictionary with data as key and label as value
+        self.lookup = dict(zip(data, labels))
+
+    def __call__(self, data):
+        # return the label of the given data
+        return self.lookup[data]
+    
+    def add_list(self, data, labels):
+        # add a list of data and labels to the dictionary
+        self.lookup.update(dict(zip(data, labels)))
+
+    # return list of labels of the given list of data
+    def get_labels(self, data):
+        try:
+            return [self.lookup[x] for x in data]
+        except KeyError:
+            return self.lookup[data]
+    
+    # return number of data in the dictionary
+    def __len__(self):
+        return len(self.lookup)
+    
+    # return all the keys of  a given value
+    def get_key(self, value):
+        return [k for k,v in self.lookup.items() if v == value]
+    
+
+# create an instance of label_lookup
+lookup = label_lookup(training_data, training_labels)
+print(f'# of data in the dictionary: {len(lookup)}')
+lookup.add_list(test_data, test_labels)
+print(f'# of data in the dictionary: {len(lookup)}')
+
+print('test the label_lookup class')
+print(f'data: {training_data[0]}')
+print(f'label: {training_labels[0]}')
+print(f'label from class: {lookup(training_data[0])}')
 
 class sgHCM:
     # first, initial the class with k value
@@ -86,10 +187,10 @@ class sgHCM:
         # find the index of the closest centroid
         closest_centroid = np.argmin(self.distances)
 
-        # assign the test sample to the closest centroid
-        self.predicted_label = closest_centroid
+        # label of the closest centroid
+        self.predicted_label = lookup(self.centroids[closest_centroid])
 
-        return self.predicted_label, self.centroids[closest_centroid]
+        return self.centroids[closest_centroid], self.predicted_label
         
     def fit(self, train_data):
         self.train_data = train_data
@@ -272,49 +373,79 @@ class sgHCM:
         # return the tolerance
         return Et
     
-# perform 10-fold cross validation on sgHCM classifier
-def cross_validation(train_data, training_labels, test_data, k_num = 2, fold=10):
+    # perform 10-fold cross validation on sgHCM classifier
+def cross_validation(train_data, train_labels, test_data, k_num = 2, fold=10):
     # shuffle the number of samples in the training data 
     # and rearrange the labels accordingly
 
     # combine the training data and labels
     train_data = np.array(train_data)
-    train_data = np.c_[train_data, training_labels]
+    train_data = np.c_[train_data, train_labels]
 
     # shuffle the training data
     np.random.shuffle(train_data)
 
     # split the training data and labels
-    training_labels = train_data[:, -1]
-    train_data = train_data[:, :-1].reshape(train_data.shape[0])
-    print(f'{train_data.shape}, {training_labels.shape}')
+    train_labels = train_data[:, -1]
+    train_data = train_data[:, :-1]    
+    # convert train_data to 1 dimensional array
+    train_data = train_data.ravel()
 
     fold_size = len(train_data) // fold
 
+    accuracy_list = []
+    num_of_unique_labels = []
+
     for i in range(fold):
+        ############################ sgHCM classifier ##########################
+        print(f"\nFold {i+1}")
+        
         # take one fold as training data
         data_train_fold = train_data[i * fold_size: (i + 1) * fold_size]
         data_test_fold = test_data[i * fold_size: (i + 1) * fold_size]
 
         # show number of unique labels in the training data
-        print(f'\nNumber of unique labels in the training data: {len(np.unique(training_labels))}')
-
-        num_labels = len(np.unique(training_labels))
-        ############################ sgHCM classifier ##########################
-        print(f"\nFold {i+1}")
-        classifier = sgHCM(k=num_labels)
+        print(f'\nNumber of unique labels in the training data: {len(np.unique(train_labels))}')
+        num_of_unique_labels.append(len(np.unique(train_labels)))
+        
+        classifier = sgHCM(k=k_num)
         classifier.fit(data_train_fold)
 
         # print('\nPredicting the test dataset...')
-        print(f'Predictions: (test sample, predicted label, predicted centroid)')
+        print(f'Predictions: (test sample, test label, predicted centroid, predicted centroid label)')
         predictions = []
-        # test the first 5 samples
-        for test_sample in data_test_fold[:5]:
-            predicted_label, predicted_centroids = classifier(test_sample)
-            print(f'{test_sample}, {predicted_label}, {predicted_centroids}')
-            predictions.append([test_sample, predicted_label, predicted_centroids])
+        accuracy = 0
+        
+        for j, test_sample in enumerate(data_test_fold):
+            predicted_centroid, predicted_label = classifier(test_sample)
+            predictions.append([test_sample, predicted_label, predicted_centroid])
+            if j < 5:
+                print(f'{test_sample}, {lookup(test_sample)}, {predicted_label}, {predicted_centroid}')      
+            if predicted_label == lookup(test_sample):
+                accuracy += 1
+
+        accuracy = accuracy / len(data_test_fold)
+        print(f'Accuracy: {accuracy}')
+        accuracy_list.append(accuracy)
      
         print('\n+++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
 
-cross_validation(training_data, training_labels, test_data, k_num = 2, fold=10)
+    print(f'\nAverage accuracy: {np.mean(accuracy_list)}')
+    print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+    return np.mean(accuracy_list), np.mean(num_of_unique_labels)
+
+results = []
+k_list = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
+# k_list = [2, 6, 10, 14, 18, 22]
+
+for k in k_list:
+    print(f'\n\nk = {k}')
+    accuracy, num_of_unique_labels = cross_validation(training_data, training_labels, test_data, k_num = k)
+    results.append([k, accuracy, num_of_unique_labels])
+    # cross_validation(training_data, training_labels, test_data, k_num = k)
+print('\n\nDone')
+
+print(f'\n\nResults: (k, accuracy, number of unique labels)')
+for result in results:
+    print(result)
+
