@@ -100,29 +100,10 @@ print(f'# of unique testing data that appears more than once: {len(unique_test_d
 # print(f'unique testing data that appears more than once: {unique_test_data[counts > 1]}')
 print(f'number of times each unique testing data appears: {counts[counts > 1]}')
 
-'''# remove duplicates from training data
-# remove duplicates from training labels
-# remove duplicates from testing data
-# remove duplicates from testing labels
-training_data = list(set(training_data))
-training_labels = list(set(training_labels))
-
-test_data = list(set(test_data))
-test_labels = list(set(test_labels))
-
-# show the first training data and its label
-print(f'first training data: {training_data[0]}')
-print(f'first training label: {training_labels[0]}')'''
-
 # show the training data that is duplicated in testing data
 print(f'# of training data that is duplicated in testing data: {len(set(training_data).intersection(test_data))}')
 
-'''# remove the training data that is duplicated in testing data
-# remove the training labels that is duplicated in testing labels
-training_data = list(set(training_data) - set(test_data))
-training_labels = list(set(training_labels) - set(test_labels))
-'''
-print('\nI amm going to ignore the duplicates for now as it takes a lot of time to remove them while keeping the labels in order.')
+# I am going to ignore the duplicates for now as it takes a lot of time to remove them while keeping the labels in order.
 
 # class that returns the label of the given data
 class label_lookup:
@@ -462,7 +443,7 @@ def cross_validation(train_data, train_labels, test_data, k_num = 2, fold=10):
     return np.mean(accuracy_list), np.mean(num_of_unique_labels), np.mean(distances_list)
 
 results = []
-k_list = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
+k_list = [i for i in range(2, 50, 3)]
 # k_list = [2, 6, 10, 14, 18, 22]
 
 for k in k_list:
@@ -470,7 +451,6 @@ for k in k_list:
     accuracy, num_of_unique_labels, distances = cross_validation(training_data, 
                                 training_labels, test_data, k_num = k)
     results.append([k, accuracy, num_of_unique_labels, distances])
-    # cross_validation(training_data, training_labels, test_data, k_num = k)
 print('\n\nDone')
 
 print('\nResults:')
@@ -486,7 +466,7 @@ plt.xlabel('k')
 plt.ylabel('Average distance')
 plt.title('k vs Average distance')
 plt.savefig('k vs Average distance.png')
-plt.show()
+plt.close()
 
 # plot k vs accuracy
 k = [x[0] for x in results]
@@ -496,4 +476,4 @@ plt.xlabel('k')
 plt.ylabel('Accuracy')
 plt.title('k vs Accuracy')
 plt.savefig('k vs Accuracy.png')
-plt.show()
+plt.close()
